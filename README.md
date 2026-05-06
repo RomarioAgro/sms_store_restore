@@ -112,3 +112,61 @@ python test_app.py --token very-long-secret-token
 ```bash
 python test_app.py --token very-long-secret-token --delete
 ```
+
+## Клиентский класс
+
+Для обращения к серверу с другого компьютера есть отдельный файл [sms_client.py](/D:/PythonProject/sms_store_restore/sms_client.py).
+
+Пример использования:
+
+```python
+from sms_client import SmsStoreClient
+
+client = SmsStoreClient()
+message = client.get_last_message_by_chat_id("-1003420941669")
+if message is not None:
+    result = client.delete_last_message_by_chat_id("-1003420941669")
+    print(result.deleted)
+```
+
+## Запуск клиента
+
+Есть готовый CLI-скрипт [run_client.py](/D:/PythonProject/sms_store_restore/run_client.py):
+
+```bash
+set BASE_URL=http://127.0.0.1:8000
+set TOKEN=very-long-secret-token
+python run_client.py --chat-id -1003420941669
+```
+
+Удалить последнее найденное сообщение:
+
+```bash
+python run_client.py --chat-id -1003420941669 --delete
+```
+
+Логирование клиента:
+
+- если передать `logger=` в `SmsStoreClient`, он будет использовать ваш логгер из вызывающего кода
+- если `logger=` не передавать, используется `logging.getLogger(__name__)`
+- `BASE_URL` и `TOKEN` берутся из переменных окружения, если не переданы явно в конструктор
+
+Исключения клиента:
+
+- `SmsClientHTTPError`
+- `SmsClientNetworkError`
+- `SmsClientError`
+
+Пример обработки ошибок:
+
+```python
+from sms_client import SmsStoreClient, SmsClientError
+
+client = SmsStoreClient()
+
+try:
+    result = client.delete_last_message_by_chat_id("-1003420941669")
+    print(result.deleted)
+except SmsClientError as exc:
+    print(f"client error: {exc}")
+```
