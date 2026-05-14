@@ -9,6 +9,7 @@ from typing import Annotated
 
 from fastapi import FastAPI, Header, HTTPException, Query
 from pydantic import BaseModel, Field
+import uvicorn
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -293,3 +294,22 @@ def delete_messages(
     )
 
     return DeleteOut(deleted=cursor.rowcount)
+
+
+def main() -> None:
+    ssl_keyfile = os.getenv("SSL_KEYFILE")
+    ssl_certfile = os.getenv("SSL_CERTFILE")
+    ssl_ca_certs = os.getenv("SSL_CA_CERTS")
+
+    uvicorn.run(
+        "app:app",
+        host=os.getenv("HOST", "0.0.0.0"),
+        port=int(os.getenv("PORT", "8000")),
+        ssl_keyfile=ssl_keyfile or None,
+        ssl_certfile=ssl_certfile or None,
+        ssl_ca_certs=ssl_ca_certs or None,
+    )
+
+
+if __name__ == "__main__":
+    main()

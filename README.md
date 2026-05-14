@@ -1,6 +1,6 @@
 # SMS Store Restore
 
-Небольшой HTTP-сервер на Python для приема, хранения, выдачи и удаления сообщений.
+Небольшой HTTPS-сервер на Python для приема, хранения, выдачи и удаления сообщений.
 
 ## Возможности
 
@@ -44,7 +44,47 @@ $env:SMS_STORE_TOKEN="very-long-secret-token"
 Запустить сервер:
 
 ```bash
-uvicorn app:app --host 0.0.0.0 --port 8000
+SSL_CERTFILE=./certs/server.crt SSL_KEYFILE=./certs/server.key python app.py
+```
+
+Или через `make`:
+
+```bash
+make cert-ca
+make run-server
+```
+
+Скрипт `make cert-ca` создаст:
+
+- `certs/ca.crt` - корневой CA
+- `certs/ca.key` - ключ CA
+- `certs/server.crt` - сертификат сервера для `195.208.118.32`
+- `certs/server.key` - ключ сервера
+
+Если нужно выпустить сертификат для другого IP, можно переопределить переменную:
+
+```bash
+make cert-ca SERVER_IP=195.208.118.32
+```
+
+## Доверие на iPhone
+
+Чтобы iPhone доверял серверу, нужно установить не `server.crt`, а `ca.crt`.
+
+Порядок:
+
+1. Скопировать `certs/ca.crt` на iPhone
+2. Установить его как профиль сертификата
+3. Открыть `Настройки`
+4. Перейти в `Основные`
+5. Открыть `Об этом устройстве` или `VPN и управление устройством`
+6. Найти `Доверие сертификатам`
+7. Включить полное доверие для твоего CA
+
+После этого сервер должен открываться по адресу:
+
+```text
+https://195.208.118.32:8000
 ```
 
 ## Примеры
@@ -52,7 +92,16 @@ uvicorn app:app --host 0.0.0.0 --port 8000
 Сохранение:
 
 ```bash
-curl -X POST http://127.0.0.1:8000/messages ^
+curl -X POST https://127.0.0.1:8000/messages ^
+  -H "Authorization: Bearer very-long-secret-token" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"chat_id\":\"phone-123\",\"text\":\"hello\"}"
+```
+
+Для внешнего доступа по IP:
+
+```bash
+curl -X POST https://195.208.118.32:8000/messages ^
   -H "Authorization: Bearer very-long-secret-token" ^
   -H "Content-Type: application/json" ^
   -d "{\"chat_id\":\"phone-123\",\"text\":\"hello\"}"
@@ -61,21 +110,21 @@ curl -X POST http://127.0.0.1:8000/messages ^
 Получение:
 
 ```bash
-curl "http://127.0.0.1:8000/messages?chat_id=phone-123&from=2026-05-05T00:00:00Z&to=2026-05-06T00:00:00Z" ^
+curl "https://127.0.0.1:8000/messages?chat_id=phone-123&from=2026-05-05T00:00:00Z&to=2026-05-06T00:00:00Z" ^
   -H "Authorization: Bearer very-long-secret-token"
 ```
 
 Удаление по `message_id`:
 
 ```bash
-curl -X DELETE "http://127.0.0.1:8000/messages?message_id=1" ^
+curl -X DELETE "https://127.0.0.1:8000/messages?message_id=1" ^
   -H "Authorization: Bearer very-long-secret-token"
 ```
 
 Удаление по времени:
 
 ```bash
-curl -X DELETE "http://127.0.0.1:8000/messages?from=2026-05-05T00:00:00Z&to=2026-05-06T00:00:00Z" ^
+curl -X DELETE "https://127.0.0.1:8000/messages?from=2026-05-05T00:00:00Z&to=2026-05-06T00:00:00Z" ^
   -H "Authorization: Bearer very-long-secret-token"
 ```
 
@@ -134,7 +183,15 @@ if message is not None:
 Есть готовый CLI-скрипт [run_client.py](/D:/PythonProject/sms_store_restore/run_client.py):
 
 ```bash
-set BASE_URL=http://127.0.0.1:8000
+set BASE_URL=https://127.0.0.1:8000
+set TOKEN=very-long-secret-token
+python run_client.py --chat-id -1003420941669
+```
+
+Для доступа по IP:
+
+```bash
+set BASE_URL=https://195.208.118.32:8000
 set TOKEN=very-long-secret-token
 python run_client.py --chat-id -1003420941669
 ```
@@ -143,6 +200,12 @@ python run_client.py --chat-id -1003420941669
 
 ```bash
 python run_client.py --chat-id -1003420941669 --delete
+```
+
+Через `make`:
+
+```bash
+CHAT_ID=-1003420941669 TOKEN=very-long-secret-token make run-client
 ```
 
 Логирование клиента:

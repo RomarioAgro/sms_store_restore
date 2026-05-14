@@ -1,4 +1,5 @@
 import os
+import ssl
 import json
 import logging
 import urllib.parse
@@ -44,8 +45,10 @@ class SmsStoreClient:
         token: str | None = None,
         logger: logging.Logger | None = None,
     ) -> None:
-        self.base_url = (base_url or os.getenv("BASE_URL", "http://127.0.0.1:8000")).rstrip("/")
+        self.base_url = (base_url or os.getenv("BASE_URL", "https://127.0.0.1:8000")).rstrip("/")
         self.token = token or os.getenv("TOKEN", "")
+        ca_certfile = os.getenv("SSL_CA_CERTFILE") or os.getenv("CA_CERT_FILE")
+        self.ssl_context = ssl.create_default_context(cafile=ca_certfile) if ca_certfile else None
         if not self.token:
             raise ValueError("TOKEN is required: pass token or set the TOKEN environment variable")
         self.logger = logger or logging.getLogger(__name__)
@@ -63,7 +66,7 @@ class SmsStoreClient:
 
         request = urllib.request.Request(url, data=data, headers=headers, method=method)
         try:
-            with urllib.request.urlopen(request) as response:
+            with urllib.request.urlopen(request, context=self.ssl_context) as response:
                 body = response.read().decode("utf-8")
                 self.logger.info("request done method=%s url=%s status=%s", method, url, response.status)
                 return json.loads(body) if body else None
