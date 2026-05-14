@@ -111,3 +111,15 @@ class SmsStoreClient:
 
         deleted = self.delete_message_by_id(message.message_id)
         return DeleteResult(message=message, deleted=deleted)
+
+def main():
+    vps = SmsStoreClient()
+    message = vps.get_last_message_by_chat_id(chat_id='-1002524289817')
+    # print(message)
+    # print(message.text)
+    # print(message.created_at)
+    # a = vps.delete_message_by_id(message_id=257)
+    print(message)
+
+if __name__ == '__main__':
+    main()
